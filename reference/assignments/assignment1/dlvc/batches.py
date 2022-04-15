@@ -37,7 +37,58 @@ class BatchGenerator:
         Raises ValueError on invalid argument values, such as if num is > len(dataset).
         '''
 
-        # TODO implement
+        import numpy as np
+        data=[]
+        labels=[]
+        indexes=[]
+        batches=[]
+
+
+        if(num>len(dataset)):
+            raise ValueError
+        num_of_batches = (len(dataset) // num) + 1
+
+        for x in dataset:
+            data.append(x.data)
+            labels.append(x.label)
+            indexes.append(x.idx)
+
+        data=np.array(data)
+        labels=np.array(labels)
+        indexes=np.array(indexes)
+
+
+
+        if(shuffle==True):
+            shuffler = np.random.permutation(len(data))
+            data=data(shuffler)
+            labels=labels(shuffler)
+            indexes=indexes(shuffler)
+
+
+
+        #     splited_data = [data[num * y:num * (y + 1)] for y in range(num_of_batches)]
+        # else:
+        #     splited_data = [data[num * y:num * (y + 1), :, :] for y in range(num_of_batches)]
+
+
+        # splited_labels= [labels[num * y:num * (y + 1)] for y in range(num_of_batches)]
+        # splitted_indexes=[indexes[num * y:num * (y + 1)] for y in range(num_of_batches)]
+
+
+
+        for i in range(num_of_batches):
+            b=Batch()
+            new_data=data[num * i:num * (i + 1)]
+            if (op is not None):
+                new_data = op(new_data)
+
+            b.data=new_data
+            b.label=labels[num * i:num * (i + 1)]
+            b.idx=indexes[num * i:num * (i + 1)]
+            batches.append(b)
+
+        self.batches=batches
 
         pass
 
@@ -47,16 +98,13 @@ class BatchGenerator:
             This is identical to the total number of batches yielded every time the __iter__ method is called.
         '''
 
-        # TODO implement
-
-        pass
+        return(len(self.batches))
 
     def __iter__(self) -> typing.Iterable[Batch]:
         '''
         Iterate over the wrapped dataset, returning the data as batches.
         '''
 
-        # TODO implement
-        # The "yield" keyword makes this easier
+        for batch in self.batches:
+            yield batch
 
-        pass
