@@ -54,7 +54,7 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 torch.backends.cudnn.benchmark = True
 
 best_vloss = 1_000_000.
-n_epochs=300
+n_epochs=100
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 for it in range(n_epochs):
     running_loss = 0.
@@ -93,10 +93,32 @@ for it in range(n_epochs):
     # Track best performance, and save the model's state
     if vloss.item() < best_vloss:
         best_vloss = vloss.item()
-        model_path = 'model_{}_{}'.format(timestamp, it)
-        torch.save(model.state_dict(), model_path)
+        model_path = 'model_{}_{}'.format(timestamp, accuracy)
+        torch.save(model, model_path)
+        best_validation_accuracy=accuracy;
 
-    print(f'In this epoch {it + 1}/{n_epochs}, Training loss: {loss.item():.4f}, Test accuracy: {accuracy:.4f}')
+    print(f'In this epoch {it + 1}/{n_epochs}, Training loss: {loss.item():.4f}, Validation accuracy: {accuracy:.4f}')
+    with open('results.csv', 'a+') as f:
+
+        f.write(f' {it + 1},{loss.item():.4f},{accuracy:.4f}\n')
     model.train(True)
 
 
+model = LinearClassifier()
+model = torch.load(model_path)
+model.train(False)
+correct = 0
+size_of_validation_set=0
+for v_batch in test_Batches:
+    v_data=v_batch.data
+    v_labels=v_batch.label
+    v_data=torch.from_numpy(v_data)
+    v_labels=torch.from_numpy(v_labels)
+    voutputs = model(v_data.float())
+    vloss = criterion(voutputs, v_labels.long())
+    _, predicted = torch.max(voutputs.data, 1)
+    size_of_validation_set+=len(v_labels)
+    correct += (predicted == v_labels).sum()
+
+test_accuracy = 100 * correct / size_of_validation_set
+print(f'Best Model  Validation Accuracy: {best_validation_accuracy:.4f} Test accuracy: {test_accuracy:.4f} ')

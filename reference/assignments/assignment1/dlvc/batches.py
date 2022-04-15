@@ -46,7 +46,10 @@ class BatchGenerator:
 
         if(num>len(dataset)):
             raise ValueError
-        num_of_batches = (len(dataset) // num) + 1
+        if(len(dataset) % num!=0):
+            num_of_batches = (len(dataset) // num) + 1
+        else:
+            num_of_batches = (len(dataset) // num)
 
         for x in dataset:
             data.append(x.data)
@@ -68,8 +71,6 @@ class BatchGenerator:
         for i in range(num_of_batches):
             b=Batch()
             new_data=data[num * i:num * (i + 1)]
-            if len(new_data)==0 :
-                pass
             if (op is not None):
                 new_data = op(new_data)
 
