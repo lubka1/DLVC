@@ -10,7 +10,7 @@ import torch
 
 
 class LinearClassifier(torch.nn.Module):
-  def __init__(self, input_dim, num_classes):
+  def __init__(self, input_dim=3072, num_classes=2):
     super(LinearClassifier, self).__init__()
 
     self.linear = torch.nn.Linear(input_dim, num_classes)
@@ -19,24 +19,24 @@ class LinearClassifier(torch.nn.Module):
     x = self.linear(x)
     return x
 
-# TODO: Create a 'BatchGenerator' for training, validation and test datasets.
+
 op = ops.chain([
     ops.vectorize(),
     ops.type_cast(np.float32),
     ops.add(-127.5),
     ops.mul(1/127.5),
 ])
+size_of_batch=500
 p=PetsDataset(r"C:\Users\marti\PycharmProjects\pythonProject\cifar-10-batches-py",1)
-training_Batches=BatchGenerator(p,500,False,op)
+training_Batches=BatchGenerator(p,size_of_batch,False,op)
 p=PetsDataset(r"C:\Users\marti\PycharmProjects\pythonProject\cifar-10-batches-py",2)
-validation_Batches=BatchGenerator(p,500,False,op)
+validation_Batches=BatchGenerator(p,size_of_batch,False,op)
 p=PetsDataset(r"C:\Users\marti\PycharmProjects\pythonProject\cifar-10-batches-py",3)
-test_Batches=BatchGenerator(p,500,False,op)
+test_Batches=BatchGenerator(p,size_of_batch,False,op)
 
 
 
 
-# TODO: Create the LinearClassifier, loss function and optimizer.
 model = LinearClassifier()
 criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
@@ -54,38 +54,49 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 torch.backends.cudnn.benchmark = True
 
 best_vloss = 1_000_000.
-n_epochs=100
+n_epochs=300
 timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
 for it in range(n_epochs):
     running_loss = 0.
     last_loss = 0.
-    for local_batch, local_labels in training_Batches:
-        local_batch=torch.from_numpy(local_batch)
+    for batch in training_Batches:
+        local_data=batch.data
+        local_labels=batch.label
+        local_data=torch.from_numpy(local_data)
         local_labels=torch.from_numpy(local_labels)
         # Transfer to GPU
         # local_batch, local_labels = local_batch.to(device), local_labels.to(device)
         optimizer.zero_grad()
-        outputs = model(local_batch)
+        outputs = model(local_data.float())
         # Compute the loss and its gradients
-        loss = criterion(outputs, local_labels)
+        loss = criterion(outputs, local_labels.long())
         loss.backward()
         # Adjust learning weights
         optimizer.step()
 
-        if (it+1) % 10 ==0:
-            model.train(False)
-            for i,vlocal_batch, vlocal_labels in validation_Batches:
 
-                voutputs = model(vlocal_batch)
-                vloss = criterion(voutputs, vlocal_labels)
-                print(f'In this epoch {it+1}/{n_epochs}, Training loss: {loss.item():.4f}, Test loss: {vloss.item():.4f}')
+    model.train(False)
+    correct = 0
+    size_of_validation_set=0
+    for v_batch in validation_Batches:
+        v_data=v_batch.data
+        v_labels=v_batch.label
+        v_data=torch.from_numpy(v_data)
+        v_labels=torch.from_numpy(v_labels)
+        voutputs = model(v_data.float())
+        vloss = criterion(voutputs, v_labels.long())
+        _, predicted = torch.max(voutputs.data, 1)
+        size_of_validation_set+=len(v_labels)
+        correct += (predicted == v_labels).sum()
 
-                # Track best performance, and save the model's state
-                if vloss.item() < best_vloss:
-                    best_vloss = vloss.item()
-                    model_path = 'model_{}_{}'.format(timestamp, it)
-                    torch.save(model.state_dict(), model_path)
+    accuracy = 100 * correct / size_of_validation_set
+    # Track best performance, and save the model's state
+    if vloss.item() < best_vloss:
+        best_vloss = vloss.item()
+        model_path = 'model_{}_{}'.format(timestamp, it)
+        torch.save(model.state_dict(), model_path)
 
-
+    print(f'In this epoch {it + 1}/{n_epochs}, Training loss: {loss.item():.4f}, Test accuracy: {accuracy:.4f}')
+    model.train(True)
 
 

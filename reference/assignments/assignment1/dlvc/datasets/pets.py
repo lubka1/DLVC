@@ -40,12 +40,12 @@ class PetsDataset(ClassificationDataset):
                 self.cifar_train_labels += cifar_train_data_dict[b'labels']
 
         if subset == 2:
-            cifar_train_data_dict = unpickle(fdir + "/test_batch")
+            cifar_train_data_dict = unpickle(fdir + "/data_batch_5")
             cifar_train_data = cifar_train_data_dict[b'data']
             self.cifar_train_labels += cifar_train_data_dict[b'labels']
 
         if subset == 3:
-            cifar_train_data_dict = unpickle(fdir + "/data_batch_5")
+            cifar_train_data_dict = unpickle(fdir + "/test_batch")
             cifar_train_data = cifar_train_data_dict[b'data']
             self.cifar_train_labels += cifar_train_data_dict[b'labels']
 

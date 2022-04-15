@@ -65,21 +65,11 @@ class BatchGenerator:
             labels=labels(shuffler)
             indexes=indexes(shuffler)
 
-
-
-        #     splited_data = [data[num * y:num * (y + 1)] for y in range(num_of_batches)]
-        # else:
-        #     splited_data = [data[num * y:num * (y + 1), :, :] for y in range(num_of_batches)]
-
-
-        # splited_labels= [labels[num * y:num * (y + 1)] for y in range(num_of_batches)]
-        # splitted_indexes=[indexes[num * y:num * (y + 1)] for y in range(num_of_batches)]
-
-
-
         for i in range(num_of_batches):
             b=Batch()
             new_data=data[num * i:num * (i + 1)]
+            if len(new_data)==0 :
+                pass
             if (op is not None):
                 new_data = op(new_data)
 
